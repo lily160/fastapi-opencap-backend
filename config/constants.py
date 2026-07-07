@@ -23,6 +23,9 @@ ConfigTypeEnum = ("calib", "intrinsics")
 # 结果文件类型【新增：对齐V1.6结果文件枚举】
 ResultFileTypeEnum = ("mono_json", "trc_file", "scaled_model", "visualization_video")
 
+# 【新增】配置文件后缀白名单，用于相机yaml配置上传校验
+CONFIG_ALLOW = {"yaml", "yml"}
+
 # 【修改：修复原PERMISSION_LIST语法错误，标准数组字典格式】
 PERMISSION_LIST = [
     {"code": "task:create", "name": "创建任务"},
