@@ -8,7 +8,8 @@ from database.models import * # 2. 解开建表命令
 Base.metadata.create_all(bind=engine)
 
 # 导入配置和路径常量
-from config.settings import BASE_STORAGE, UPLOAD_DIR, RESULT_DIR, METADATA_DIR, LOG_DIR
+from config.settings import BASE_STORAGE, UPLOAD_DIR, RESULT_DIR, METADATA_DIR, LOG_DIR, PROJECT_NAME, PROJECT_VERSION
+from routers import api_router
 
 # --- 注意：以下模块在组员开发完毕前暂时注释，防止启动报错 ---
 # from routers import api_router
@@ -28,7 +29,7 @@ for folder in init_folders:
 # 启动定时轮询任务 (组员 B 开发完成后解开)
 # start_scheduler()
 
-app = FastAPI(title="OpenCap Monocular V1.6 后端", version="1.6")
+app = FastAPI(title=PROJECT_NAME, version=PROJECT_VERSION)
 
 # 跨域配置
 app.add_middleware(
@@ -39,8 +40,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-# 注册路由 (组员开发完成后解开)
-# app.include_router(api_router, prefix="/api/v1")
+app.include_router(api_router, prefix="/api/v1")
 # app.include_router(algo_router)
 
 @app.get("/")

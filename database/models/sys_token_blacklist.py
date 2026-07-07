@@ -1,12 +1,18 @@
-from sqlalchemy import Column, BigInteger, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, DateTime, String
 from datetime import datetime
+from uuid import uuid4
+
 from database.db import Base
+
 
 class TokenBlacklist(Base):
     __tablename__ = 'sys_token_blacklist'
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True, comment="自增ID")
-    token = Column(Text, nullable=False, comment="失效的Token")
-    user_id = Column(String(64), ForeignKey('sys_user.user_id'), comment="关联用户ID")
-    expired_at = Column(DateTime, nullable=False, comment="Token过期时间")
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow, comment="加入黑名单时间")
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid4()), comment="唯一ID")
+    user_id = Column(String(64), index=True, nullable=False, comment="关联用户ID")
+    token_hash = Column(String(64), unique=True, index=True, nullable=True, comment="Refresh Token哈希")
+    jti = Column(String(64), unique=True, index=True, nullable=True, comment="Access Token唯一标识")
+    token_type = Column(String(16), nullable=False, comment="Token类型(access/refresh)")
+    expires_at = Column(DateTime, nullable=False, comment="Token过期时间")
+    revoked_at = Column(DateTime, nullable=True, comment="Token失效时间")
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow, comment="创建时间")
