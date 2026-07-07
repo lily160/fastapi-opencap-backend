@@ -1,0 +1,28 @@
+# Web框架
+fastapi
+uvicorn[standard]
+
+# ORM数据库
+sqlalchemy
+pymysql
+
+# JWT、密码加密
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+
+# 定时任务轮询算法
+apscheduler
+
+# HTTP请求算法服务
+httpx
+
+# yaml生成metadata
+pyyaml
+
+# 环境变量读取
+python-dotenv
+
+# 数据校验、工具
+python-dateutil
+pydantic[email-validator]
