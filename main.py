@@ -2,34 +2,35 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-# 业务路由
-from routers import api_router
-# 【修改：独立导入内部算法路由，不混入/api/v1前缀】
-from internal_routers.algo import algo_router
+# 1. 解开导入
 from database.db import engine, Base
+from database.models import * # 2. 解开建表命令
+Base.metadata.create_all(bind=engine)
+
+# 导入配置和路径常量
 from config.settings import BASE_STORAGE, UPLOAD_DIR, RESULT_DIR, METADATA_DIR, LOG_DIR
-from core.task_poller import start_scheduler
 
-# 导入全部表模型,自动建表
-from database.models import (
-    sys_user, sys_upload_file, sys_task, sys_task_result,
-    sys_camera_config, sys_token_blacklist, sys_operation_log,
-    sys_permission, sys_role_permission, sys_user_permission_override
-)
+# --- 注意：以下模块在组员开发完毕前暂时注释，防止启动报错 ---
+# from routers import api_router
+# from internal_routers.algo import algo_router
+# from database.db import engine, Base
+# from core.task_poller import start_scheduler
+# from database.models import sys_user, ...
 
-# 【修改：修复原代码变量错误 RESULT → RESULT_DIR，新增METADATA_DIR、LOG_DIR初始化】
+# 初始化文件夹 (修复了原文档中的变量错误)
 init_folders = [BASE_STORAGE, UPLOAD_DIR, RESULT_DIR, METADATA_DIR, LOG_DIR]
 for folder in init_folders:
     os.makedirs(folder, exist_ok=True)
 
-# 创建数据表
-Base.metadata.create_all(bind=engine)
+# 自动建表 (连接数据库时解开)
+# Base.metadata.create_all(bind=engine)
 
-# 启动定时轮询任务
-start_scheduler()
+# 启动定时轮询任务 (组员 B 开发完成后解开)
+# start_scheduler()
 
 app = FastAPI(title="OpenCap Monocular V1.6 后端", version="1.6")
-# 跨域
+
+# 跨域配置
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -37,14 +38,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
-# 业务接口前缀 /api/v1
-app.include_router(api_router, prefix="/api/v1")
-# 【修改：算法内部接口无前缀，单独挂载，不会混入/api/v1路由分组】
-app.include_router(algo_router)
+
+# 注册路由 (组员开发完成后解开)
+# app.include_router(api_router, prefix="/api/v1")
+# app.include_router(algo_router)
 
 @app.get("/")
 def root():
-    return {"msg": "服务正常,文档地址 /api/v1/docs"}
+    return {"msg": "服务正常，文档地址 /docs"}
 
 if __name__ == "__main__":
     import uvicorn
