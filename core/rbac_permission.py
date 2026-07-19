@@ -6,7 +6,7 @@ from jose import JWTError
 from sqlalchemy.orm import Session
 
 from config.constants import UserRole
-from core.security import decode_token
+from core.security import decode_token, get_current_user
 from database.db import get_db
 from database.models.sys_token_blacklist import TokenBlacklist
 from database.models.sys_user import User
@@ -57,9 +57,6 @@ def get_auth_context(
     return AuthContext(user=user, token=auth_info.credentials, payload=payload)
 
 
-def get_current_user(auth_context: AuthContext = Depends(get_auth_context)) -> User:
-    return auth_context.user
-
 
 def require_permission(permission: str):
     def dependency(auth_context: AuthContext = Depends(get_auth_context)) -> User:
@@ -69,3 +66,15 @@ def require_permission(permission: str):
         return auth_context.user
 
     return dependency
+
+def require_admin(user: User = Depends(get_current_user)) -> User:
+    """校验当前用户是普通管理员/超级管理员"""
+    if user.role not in (UserRole.ADMIN, UserRole.SUPER_ADMIN):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="admin permission required")
+    return user
+
+def require_super_admin(user: User = Depends(get_current_user)) -> User:
+    """仅允许超级管理员访问"""
+    if user.role != UserRole.SUPER_ADMIN:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="super admin permission required")
+    return user
