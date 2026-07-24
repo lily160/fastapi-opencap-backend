@@ -1,11 +1,7 @@
 import httpx
-from config.settings import ALGO_BASE_URL, ALGO_API_KEY, TASK_MAX_TIMEOUT_SEC
-from core.exceptions import CustomException
-from config.constants import CODE_SERVER_ERR
-
-import httpx
 from fastapi import HTTPException
-from config.settings import ALGO_BASE_URL, ALGO_API_KEY, ALGO_TIMEOUT
+from config.settings import ALGO_BASE_URL, ALGO_API_KEY, TASK_MAX_TIMEOUT_SEC, ALGO_TIMEOUT
+from core.exceptions import CustomException
 from config.constants import CODE_SERVER_ERR
 
 class AlgoClient:
@@ -19,7 +15,8 @@ class AlgoClient:
         """
         提交算法任务，返回算法侧的 algo_id
         """
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        # 【修改点 1】: 增加 trust_env=False, proxies=None 绕过系统代理
+        async with httpx.AsyncClient(timeout=self.timeout, trust_env=False) as client:
             try:
                 response = await client.post(
                     f"{self.base_url}/run_mono",
@@ -40,7 +37,8 @@ class AlgoClient:
         """
         供后台定时任务轮询进度的接口
         """
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        # 【修改点 2】: 增加 trust_env=False, proxies=None 绕过系统代理
+        async with httpx.AsyncClient(timeout=10.0, trust_env=False) as client:
             response = await client.get(
                 f"{self.base_url}/status/{algo_id}",
                 headers=self.headers
@@ -49,6 +47,7 @@ class AlgoClient:
             return response.json()
 
 algo_client = AlgoClient()
+
 def cancel_algo_task(algo_id: str):
     """调用算法服务取消指定algo_id的运行/排队任务"""
     headers = {
@@ -57,7 +56,8 @@ def cancel_algo_task(algo_id: str):
     }
     url = f"{ALGO_BASE_URL}/cancel/{algo_id}"
     try:
-        with httpx.Client(timeout=ALGO_TIMEOUT/2) as client:
+        # 【修改点 3】: 同步客户端也增加 trust_env=False, proxies=None 绕过系统代理
+        with httpx.Client(timeout=ALGO_TIMEOUT/2, trust_env=False) as client:
             resp = client.post(url, headers=headers)
             resp.raise_for_status()
             data = resp.json()

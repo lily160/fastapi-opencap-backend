@@ -57,8 +57,8 @@ async def create_mono_task(
     algo_payload = {
         "video_path": video.file_path,  
         "metadata_path": real_metadata_path,  
-        "calib_path": req.calib_path or "default_calib.yaml",  
-        "intrinsics_path": req.intrinsics_path or "default_intrinsics.yaml",  
+        "calib_path": req.calib_path,
+        "intrinsics_path": req.intrinsics_path,
         "estimate_local_only": req.estimate_local_only,
         "rerun": req.rerun,
         "session_id": safe_task_id,  
