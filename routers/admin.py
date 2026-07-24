@@ -1,23 +1,19 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from database.db import get_db
-from core.security import get_current_user
-from core.rbac_permission import require_admin, require_super_admin, require_permission
-from core.file_security import save_config_file
-from utils.uuid_util import generate_uuid
+
 from config.constants import *
+from core.file_security import save_config_file
+from core.rbac_permission import AuthContext, get_auth_context
+from core.rbac_permission import require_admin, require_super_admin, require_permission
+from database.db import get_db
+from database.models.sys_camera_config import CameraConfig
+from database.models.sys_role_permission import RolePermission
 # 修复模型导入：使用大写ORM类名（匹配models文件定义）
 from database.models.sys_task import Task
-from database.models.sys_camera_config import CameraConfig
-from database.models.sys_upload_file import UploadFile as DBUploadFile
 from database.models.sys_user import User
-from database.models.sys_task_result import TaskResult
-from database.models.sys_permission import Permission
-from database.models.sys_role_permission import RolePermission
 from database.models.sys_user_permission_override import UserPermissionOverride
 from schemas.admin.admin_schema import *
-from core.rbac_permission import AuthContext, get_auth_context
+from utils.uuid_util import generate_uuid
 
 router = APIRouter()
 
@@ -29,11 +25,9 @@ def admin_get_all_tasks(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
-    auth_context: AuthContext = Depends(get_auth_context)
+    current_user = Depends(require_permission("permission:manage"))
 ):
-    current_user = auth_context.user
     require_admin(current_user)
-    require_permission(current_user, "task:read:admin")
     query = db.query(Task).filter(Task.is_deleted == 0)
     if status:
         query = query.filter(Task.status == status)
@@ -118,9 +112,8 @@ def list_camera_config(
 def delete_camera_config(
     config_id: str,
     db: Session = Depends(get_db),
-    auth_context: AuthContext = Depends(get_auth_context)
+    current_user = Depends(require_permission("permission:manage"))
 ):
-    current_user = auth_context.user
     require_admin(current_user)
     cfg = db.query(CameraConfig).filter(CameraConfig.config_id == config_id).first()
     if not cfg:
@@ -136,11 +129,9 @@ def list_all_user(
     page_size: int = Query(10),
     username: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    auth_context: AuthContext = Depends(get_auth_context)
+    current_user = Depends(require_permission("permission:manage"))
 ):
-    current_user = auth_context.user
     require_admin(current_user)
-    require_permission(current_user, "user:manage")
     query = db.query(User)
     if username:
         query = query.filter(User.username.like(f"%{username}%"))
@@ -165,11 +156,9 @@ def update_user_status(
     user_id: str,
     body: UserStatusUpdate,
     db: Session = Depends(get_db),
-    auth_context: AuthContext = Depends(get_auth_context)
+    current_user = Depends(require_permission("permission:manage"))
 ):
-    current_user = auth_context.user
     require_admin(current_user)
-    require_permission(current_user, "user:manage")
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(CODE_NOT_FOUND, "用户不存在")
@@ -182,11 +171,9 @@ def update_user_status(
 def force_cancel_task(
     task_id: str,
     db: Session = Depends(get_db),
-    auth_context: AuthContext = Depends(get_auth_context)
+    current_user = Depends(require_permission("permission:manage"))
 ):
-    current_user = auth_context.user
     require_admin(current_user)
-    require_permission(current_user, "task:force_cancel:admin")
     task = db.query(Task).filter(Task.task_id == task_id, Task.is_deleted == 0).first()
     if not task:
         raise HTTPException(CODE_NOT_FOUND, "任务不存在")
@@ -229,11 +216,9 @@ def change_user_role(
 def batch_delete_task(
     req: BatchDeleteTaskReq,
     db: Session = Depends(get_db),
-    auth_context: AuthContext = Depends(get_auth_context)
+    current_user = Depends(require_permission("permission:manage"))
 ):
-    current_user = auth_context.user
     require_admin(current_user)
-    require_permission(current_user, "task:delete:admin")
     if len(req.task_ids) == 0 or len(req.task_ids) > 100:
         raise HTTPException(CODE_PARAM_ERR, "任务ID列表不能为空或超过100条")
     deleted = 0
@@ -266,11 +251,9 @@ def config_role_permission(
     role: str,
     body: RolePermissionReq,
     db: Session = Depends(get_db),
-    auth_context: AuthContext = Depends(get_auth_context)
+    current_user = Depends(require_permission("permission:manage"))
 ):
-    current_user = auth_context.user
     require_super_admin(current_user)
-    require_permission(current_user, "permission:manage")
     if role not in [UserRole.USER, UserRole.ADMIN]:
         raise HTTPException(CODE_PARAM_ERR, "角色仅支持user/admin")
     # 清空原有角色权限
@@ -291,11 +274,9 @@ def user_permission_override(
     user_id: str,
     body: UserPermissionOverrideReq,
     db: Session = Depends(get_db),
-    auth_context: AuthContext = Depends(get_auth_context)
+    current_user = Depends(require_permission("permission:manage"))
 ):
-    current_user = auth_context.user
     require_super_admin(current_user)
-    require_permission(current_user, "permission:manage")
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
         raise HTTPException(CODE_NOT_FOUND, "用户不存在")
