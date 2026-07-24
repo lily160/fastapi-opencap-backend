@@ -10,13 +10,15 @@ from config.constants import *
 # 修复模型导入：使用大写ORM类名（匹配models文件定义）
 from database.models.sys_task import Task
 from database.models.sys_camera_config import CameraConfig
-from database.models.sys_upload_file import UploadFile
+from database.models.sys_upload_file import UploadFile as DBUploadFile
 from database.models.sys_user import User
 from database.models.sys_task_result import TaskResult
 from database.models.sys_permission import Permission
 from database.models.sys_role_permission import RolePermission
 from database.models.sys_user_permission_override import UserPermissionOverride
 from schemas.admin.admin_schema import *
+from core.rbac_permission import AuthContext, get_auth_context
+
 router = APIRouter()
 
 # ====================== 6.1 查看全量任务列表 ======================
@@ -27,8 +29,9 @@ def admin_get_all_tasks(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
+    current_user = auth_context.user
     require_admin(current_user)
     require_permission(current_user, "task:read:admin")
     query = db.query(Task).filter(Task.is_deleted == 0)
@@ -55,8 +58,9 @@ def upload_camera_config(
     device_model: str = Query(...),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
+    current_user = auth_context.user
     require_admin(current_user)
     file_info = save_config_file(file, current_user.user_id, file_type)
     config_id = generate_uuid()
@@ -84,8 +88,9 @@ def list_camera_config(
     device_model: Optional[str] = Query(None),
     file_type: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
+    current_user = auth_context.user
     require_admin(current_user)
     query = db.query(CameraConfig, UploadFile, User)\
         .join(UploadFile, CameraConfig.file_id == UploadFile.file_id)\
@@ -113,8 +118,9 @@ def list_camera_config(
 def delete_camera_config(
     config_id: str,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
+    current_user = auth_context.user
     require_admin(current_user)
     cfg = db.query(CameraConfig).filter(CameraConfig.config_id == config_id).first()
     if not cfg:
@@ -130,8 +136,9 @@ def list_all_user(
     page_size: int = Query(10),
     username: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
+    current_user = auth_context.user
     require_admin(current_user)
     require_permission(current_user, "user:manage")
     query = db.query(User)
@@ -158,8 +165,9 @@ def update_user_status(
     user_id: str,
     body: UserStatusUpdate,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
+    current_user = auth_context.user
     require_admin(current_user)
     require_permission(current_user, "user:manage")
     user = db.query(User).filter(User.user_id == user_id).first()
@@ -174,8 +182,9 @@ def update_user_status(
 def force_cancel_task(
     task_id: str,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
+    current_user = auth_context.user
     require_admin(current_user)
     require_permission(current_user, "task:force_cancel:admin")
     task = db.query(Task).filter(Task.task_id == task_id, Task.is_deleted == 0).first()
@@ -196,8 +205,9 @@ def change_user_role(
     user_id: str,
     body: UserRoleUpdate,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
+    current_user = auth_context.user
     require_super_admin(current_user)
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
@@ -219,8 +229,9 @@ def change_user_role(
 def batch_delete_task(
     req: BatchDeleteTaskReq,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
+    current_user = auth_context.user
     require_admin(current_user)
     require_permission(current_user, "task:delete:admin")
     if len(req.task_ids) == 0 or len(req.task_ids) > 100:
@@ -243,8 +254,9 @@ def batch_delete_task(
 # ====================== 6.10 权限点列表 ======================
 @router.get("/permissions")
 def list_permissions(
-    current_user = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
+    current_user = auth_context.user
     require_super_admin(current_user)
     return {"permissions": PERMISSION_LIST}
 
@@ -254,8 +266,9 @@ def config_role_permission(
     role: str,
     body: RolePermissionReq,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
+    current_user = auth_context.user
     require_super_admin(current_user)
     require_permission(current_user, "permission:manage")
     if role not in [UserRole.USER, UserRole.ADMIN]:
@@ -278,8 +291,9 @@ def user_permission_override(
     user_id: str,
     body: UserPermissionOverrideReq,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
+    current_user = auth_context.user
     require_super_admin(current_user)
     require_permission(current_user, "permission:manage")
     user = db.query(User).filter(User.user_id == user_id).first()

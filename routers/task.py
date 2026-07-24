@@ -12,7 +12,7 @@ from database.db import get_db
 from database.models import Task, UploadFile, User
 from schemas.task.task_schema import TaskCreateReq
 # 【修改2】从队友的 RBAC 权限模块引入核心鉴权依赖
-from core.rbac_permission import get_current_user
+from core.rbac_permission import AuthContext, get_auth_context
 
 router = APIRouter()
 
@@ -24,15 +24,15 @@ async def create_mono_task(
     req: TaskCreateReq, 
     db: Session = Depends(get_db),
     # 【修改3】通过 Depends 注入当前登录用户对象
-    current_user: User = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
     # 直接提取真实登录用户的 ID
-    current_user_id = current_user.user_id
+    user_id = auth_context.user.user_id
 
     # 校验视频文件是否归属当前用户
     video = db.query(UploadFile).filter(
         UploadFile.file_id == req.video_file_id,
-        UploadFile.user_id == current_user_id,
+        UploadFile.user_id == user_id,
         UploadFile.is_deleted == False
     ).first()
 
@@ -75,7 +75,7 @@ async def create_mono_task(
     new_task = Task(
         task_id=safe_task_id,
         algo_id=raw_algo_id,
-        user_id=current_user_id,
+        user_id=user_id,
         video_file_id=req.video_file_id,
         height_m=req.height_m,
         mass_kg=req.mass_kg,
@@ -105,9 +105,9 @@ async def create_mono_task(
 def get_task_status(
     task_id: str, 
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
-    current_user_id = current_user.user_id
+    current_user_id = auth_context.user.user_id
 
     # 从数据库查询任务
     task = db.query(Task).filter(Task.task_id == task_id, Task.is_deleted == False).first()
@@ -140,9 +140,9 @@ def get_task_list(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(10, ge=1, le=100, description="每页条数"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
-    current_user_id = current_user.user_id
+    current_user_id = auth_context.user.user_id
 
     # 构建基础查询（当前登录用户且未删除）
     query = db.query(Task).filter(
@@ -183,9 +183,9 @@ def get_task_list(
 def cancel_task(
     task_id: str, 
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
-    current_user_id = current_user.user_id
+    current_user_id = auth_context.user.user_id
 
     task = db.query(Task).filter(
         Task.task_id == task_id,
@@ -214,9 +214,9 @@ def cancel_task(
 async def rerun_task(
     task_id: str, 
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    auth_context: AuthContext = Depends(get_auth_context)
 ):
-    current_user_id = current_user.user_id
+    current_user_id = auth_context.user.user_id
 
     # 查询原任务参数
     old_task = db.query(Task).filter(
