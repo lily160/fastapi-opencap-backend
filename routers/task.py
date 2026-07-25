@@ -6,14 +6,13 @@ from sqlalchemy.orm import Session
 from config.constants import CODE_CREATE, CODE_PARAM_ERR, CODE_NOT_FOUND, CODE_FORBIDDEN
 from core.algo_client import algo_client
 from core.id_wrapper import generate_task_id
-from core.security import require_permission
 from core.yaml_generator import generate_metadata_yaml
 from database.db import get_db
 # 【修改1】引入 User 模型
 from database.models import Task, UploadFile, User
 from schemas.task.task_schema import TaskCreateReq
 # 【修改2】从队友的 RBAC 权限模块引入核心鉴权依赖
-from core.rbac_permission import AuthContext, get_auth_context
+from core.rbac_permission import AuthContext, get_auth_context, require_permission
 
 router = APIRouter()
 
