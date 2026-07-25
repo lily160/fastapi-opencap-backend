@@ -1,4 +1,6 @@
 import os
+
+from aiosmtplib import smtp
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -11,6 +13,20 @@ def env_int(name: str, default: int) -> int:
 # 数据库
 DB_URL = os.getenv("DB_URL") or os.getenv("DATABASE_URL", "mysql+pymysql://root@127.0.0.1:3306/opencap?charset=utf8mb4")
 DB_ECHO = os.getenv("DB_ECHO", "False") == "True"
+
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
+KAFKA_FORGOT_PASSWORD_TOPIC = os.getenv("KAFKA_FORGOT_PASSWORD_TOPIC", "send_email")
+#SMTP
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.qq.com")
+SMTP_PORT = env_int("SMTP_PORT", 465)
+SMTP_USER = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+#SMS
+SMS_ACCESS_KEY_ID = os.getenv("SMS_ACCESS_KEY_ID", "")
+SMS_ACCESS_KEY_SECRET = os.getenv("SMS_ACCESS_KEY_SECRET", "")
+SMS_SIGN_NAME = os.getenv("SMS_SIGN_NAME", "")
+SMS_TEMPLATE_CODE = os.getenv("SMS_TEMPLATE_CODE", "")
+SMS_ENDPOINT = os.getenv("SMS_ENDPOINT", "dysmsapi.aliyuncs.com")
 
 # JWT
 SECRET_KEY = os.getenv("SECRET_KEY", "change-me-before-production")

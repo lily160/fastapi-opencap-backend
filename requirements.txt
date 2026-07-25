@@ -4,7 +4,10 @@ uvicorn[standard]
 
 # ORM数据库
 sqlalchemy
+greenlet
 pymysql
+aiomysql
+aiokafka
 
 # JWT、密码加密
 python-jose[cryptography]
@@ -16,6 +19,8 @@ apscheduler
 
 # HTTP请求算法服务
 httpx
+aiosmtplib
+alibabacloud-dysmsapi20170525
 
 # yaml生成metadata
 pyyaml
