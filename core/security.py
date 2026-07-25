@@ -139,6 +139,11 @@ def get_current_user(auth_context: AuthContext = Depends(get_auth_context)) -> U
 # 3. RBAC 与 权限校验
 # ==========================================
 def merge_user_permissions(db: Session, user: User) -> list[str]:
+    # ✅ 补丁：如果是超级管理员，直接返回通配符最高权限，不需要去查数据库
+    role_value = user.role.value if hasattr(user.role, "value") else user.role
+    if role_value == UserRole.SUPER_ADMIN.value:  # 或者直接写 "super_admin"
+        return ["*"]
+
     """合并角色默认权限 + 用户自定义grant/revoke覆盖权限"""
     from database.models.sys_role_permission import RolePermission
     from database.models.sys_user_permission_override import UserPermissionOverride
