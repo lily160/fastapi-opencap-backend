@@ -8,3 +8,4 @@ from .sys_operation_log import OperationLog
 from .sys_permission import Permission
 from .sys_role_permission import RolePermission
 from .sys_user_permission_override import UserPermissionOverride
+from .sys_forgot_password import ForgotPasswordSession

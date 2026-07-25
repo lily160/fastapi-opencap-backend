@@ -11,6 +11,9 @@ from database.db import get_db
 from database.models.sys_token_blacklist import TokenBlacklist
 from database.models.sys_user import User
 
+# 实例化 HTTPBearer 身份验证方案。
+# auto_error=True 表示如果请求头中没有有效的 Authorization: Bearer <token>，
+# FastAPI 会在进入路由函数前自动拦截请求，并返回 HTTP 403 Forbidden 错误。
 bearer_scheme = HTTPBearer(auto_error=True)
 
 
@@ -20,9 +23,8 @@ class AuthContext:
     token: str
     payload: dict
 
-
 def get_role_permissions(role: str) -> list[str]:
-    role_value = role.value if hasattr(role, "value") else role
+    role_value = role.value if hasattr(role, "value") else role#兼容枚举和字符串两种转入
     if role_value == UserRole.SUPER_ADMIN.value:
         return ["*"]
     if role_value == UserRole.ADMIN.value:
@@ -55,7 +57,6 @@ def get_auth_context(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="user is disabled")
 
     return AuthContext(user=user, token=auth_info.credentials, payload=payload)
-
 
 
 def require_permission(permission: str):
