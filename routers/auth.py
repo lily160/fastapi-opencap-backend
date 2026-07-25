@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from config.constants import CODE_CREATE, CODE_NO_CONTENT, CODE_SUCCESS, UserRole
 from config.settings import ACCESS_TOKEN_EXPIRE_SECONDS
-from core.rbac_permission import AuthContext, get_auth_context, get_role_permissions
+from core.rbac_permission import AuthContext, get_auth_context
 from core.security import (
     create_access_token,
     create_refresh_token,
@@ -17,6 +17,7 @@ from core.security import (
     get_password_hash,
     utc_now,
     verify_password,
+    merge_user_permissions
 )
 from database.db import get_db
 from database.models.sys_token_blacklist import TokenBlacklist
@@ -83,7 +84,9 @@ def authenticate_user(db: Session, username: str, password: str) -> User:
 
 
 def issue_tokens(db: Session, user: User) -> TokenResponse:
-    permissions = get_role_permissions(user.role)
+    # ✅ 核心修复：直接调用你之前写好的、连接数据库的动态权限结算函数
+    permissions = merge_user_permissions(db, user)
+
     access_token, _ = create_access_token(user.user_id, user.role, permissions)
     refresh_token, refresh_expires_at = create_refresh_token(user.user_id)
 
