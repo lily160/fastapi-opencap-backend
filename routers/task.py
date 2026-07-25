@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from config.constants import CODE_CREATE, CODE_PARAM_ERR, CODE_NOT_FOUND, CODE_FORBIDDEN
 from core.algo_client import algo_client
 from core.id_wrapper import generate_task_id
+from core.security import require_permission
 from core.yaml_generator import generate_metadata_yaml
 from database.db import get_db
 # 【修改1】引入 User 模型
@@ -21,13 +22,13 @@ router = APIRouter()
 # ==========================================
 @router.post("/mono", status_code=CODE_CREATE)
 async def create_mono_task(
-    req: TaskCreateReq, 
+    req: TaskCreateReq,
     db: Session = Depends(get_db),
-    # 【修改3】通过 Depends 注入当前登录用户对象
-    auth_context: AuthContext = Depends(get_auth_context)
+        # 👇 换成高级金库锁
+        current_user: User = Depends(require_permission("task:create"))
 ):
     # 直接提取真实登录用户的 ID
-    user_id = auth_context.user.user_id
+    user_id = current_user.user_id
 
     # 校验视频文件是否归属当前用户
     video = db.query(UploadFile).filter(
@@ -55,13 +56,13 @@ async def create_mono_task(
 
     # 组装传递给算法服务的参数载荷 (Payload)
     algo_payload = {
-        "video_path": video.file_path,  
-        "metadata_path": real_metadata_path,  
+        "video_path": video.file_path,
+        "metadata_path": real_metadata_path,
         "calib_path": req.calib_path,
         "intrinsics_path": req.intrinsics_path,
         "estimate_local_only": req.estimate_local_only,
         "rerun": req.rerun,
-        "session_id": safe_task_id,  
+        "session_id": safe_task_id,
         "activity": req.activity
     }
 
@@ -103,11 +104,12 @@ async def create_mono_task(
 # ==========================================
 @router.get("/{task_id}")
 def get_task_status(
-    task_id: str, 
+    task_id: str,
     db: Session = Depends(get_db),
-    auth_context: AuthContext = Depends(get_auth_context)
+        # 👇 换成高级金库锁
+        current_user: User = Depends(require_permission("task:read:self"))
 ):
-    current_user_id = auth_context.user.user_id
+    current_user_id = current_user.user_id
 
     # 从数据库查询任务
     task = db.query(Task).filter(Task.task_id == task_id, Task.is_deleted == False).first()
@@ -140,9 +142,10 @@ def get_task_list(
     page: int = Query(1, ge=1, description="页码"),
     page_size: int = Query(10, ge=1, le=100, description="每页条数"),
     db: Session = Depends(get_db),
-    auth_context: AuthContext = Depends(get_auth_context)
+        # 👇 换成高级金库锁
+        current_user: User = Depends(require_permission("task:read:self"))
 ):
-    current_user_id = auth_context.user.user_id
+    current_user_id = current_user.user_id
 
     # 构建基础查询（当前登录用户且未删除）
     query = db.query(Task).filter(
@@ -181,11 +184,12 @@ def get_task_list(
 # ==========================================
 @router.post("/{task_id}/cancel", status_code=200)
 def cancel_task(
-    task_id: str, 
+    task_id: str,
     db: Session = Depends(get_db),
-    auth_context: AuthContext = Depends(get_auth_context)
+        # 👇 换成高级金库锁
+        current_user: User = Depends(require_permission("task:cancel:self"))
 ):
-    current_user_id = auth_context.user.user_id
+    current_user_id = current_user.user_id
 
     task = db.query(Task).filter(
         Task.task_id == task_id,
@@ -212,11 +216,12 @@ def cancel_task(
 # ==========================================
 @router.post("/{task_id}/rerun", status_code=200)
 async def rerun_task(
-    task_id: str, 
+    task_id: str,
     db: Session = Depends(get_db),
-    auth_context: AuthContext = Depends(get_auth_context)
+        # 👇 换成高级金库锁
+        current_user: User = Depends(require_permission("task:rerun:self"))
 ):
-    current_user_id = auth_context.user.user_id
+    current_user_id = current_user.user_id
 
     # 查询原任务参数
     old_task = db.query(Task).filter(
@@ -237,13 +242,13 @@ async def rerun_task(
     temp_new_task_id = generate_task_id(temp_seed)
 
     algo_payload = {
-        "video_path": video.file_path,  
-        "metadata_path": old_task.metadata_path,  
+        "video_path": video.file_path,
+        "metadata_path": old_task.metadata_path,
         "calib_path": old_task.calib_path or "default_calib.yaml",
         "intrinsics_path": old_task.intrinsics_path or "default_intrinsics.yaml",
         "estimate_local_only": old_task.estimate_local_only,
-        "rerun": True,  
-        "session_id": temp_new_task_id,  
+        "rerun": True,
+        "session_id": temp_new_task_id,
         "activity": old_task.activity
     }
 
@@ -252,8 +257,8 @@ async def rerun_task(
     final_new_task_id = generate_task_id(new_raw_algo_id)
 
     new_task = Task(
-        task_id=final_new_task_id,  
-        algo_id=new_raw_algo_id,  
+        task_id=final_new_task_id,
+        algo_id=new_raw_algo_id,
         user_id=current_user_id,
         video_file_id=old_task.video_file_id,
         height_m=old_task.height_m,
@@ -261,8 +266,8 @@ async def rerun_task(
         sex=old_task.sex,
         activity=old_task.activity,
         estimate_local_only=old_task.estimate_local_only,
-        rerun=True,  
-        metadata_path=old_task.metadata_path,  
+        rerun=True,
+        metadata_path=old_task.metadata_path,
         status="QUEUED"
     )
 

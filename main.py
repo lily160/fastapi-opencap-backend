@@ -23,12 +23,15 @@ def sync_permissions_to_db():
     """在系统启动时，自动将预设的权限点同步到数据库"""
     # 定义系统所有可用的权限点（匹配你 Permission 模型的 name 和 description 要求）
     preset_permissions = [
-        {"code": "permission:manage", "name": "权限配置", "desc": "管理系统角色和权限点配置"},
         {"code": "task:create", "name": "创建任务", "desc": "允许用户创建全新的分析任务"},
         {"code": "task:read:self", "name": "查看个人任务", "desc": "仅能查看用户自己创建的任务"},
+        {"code": "task:cancel:self", "name": "取消个人任务", "desc": "允许用户取消自己创建且处于排队或运行状态的任务"},
+        {"code": "task:rerun:self", "name": "重跑个人任务", "desc": "允许用户使用原视频和参数重新运行自己创建的任务"},
         {"code": "task:read:admin", "name": "查看全部任务", "desc": "管理员查看系统中所有人的任务"},
-        {"code": "task:delete:admin", "name": "删除任务", "desc": "管理员删除系统中的任意任务"},
-        {"code": "user:manage", "name": "用户管理", "desc": "管理系统用户的角色和状态"}
+        {"code": "task:force_cancel:admin", "name": "强制取消任务", "desc": "管理员强制中断或取消系统中任意用户的任务"},
+        {"code": "task:delete:admin", "name": "批量删除任务", "desc": "管理员批量清理或删除系统中的任意任务数据"},
+        {"code": "user:manage", "name": "用户管理", "desc": "管理系统用户的角色和状态"},
+        {"code": "permission:manage", "name": "权限配置", "desc": "管理系统角色和权限点配置"}
     ]
 
     # 利用 engine 开启一个临时的数据库会话
