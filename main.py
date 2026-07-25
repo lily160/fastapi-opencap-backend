@@ -21,8 +21,9 @@ from core.task_poller import start_scheduler
 # ==========================================
 def sync_permissions_to_db():
     """在系统启动时，自动将预设的权限点同步到数据库"""
-    # 定义系统所有可用的权限点（匹配你 Permission 模型的 name 和 description 要求）
+    # 定义系统所有可用的权限点（匹配 Permission 模型的 name 和 description 要求）
     preset_permissions = [
+        # ================= 任务模块 (Task) =================
         {"code": "task:create", "name": "创建任务", "desc": "允许用户创建全新的分析任务"},
         {"code": "task:read:self", "name": "查看个人任务", "desc": "仅能查看用户自己创建的任务"},
         {"code": "task:cancel:self", "name": "取消个人任务", "desc": "允许用户取消自己创建且处于排队或运行状态的任务"},
@@ -30,8 +31,15 @@ def sync_permissions_to_db():
         {"code": "task:read:admin", "name": "查看全部任务", "desc": "管理员查看系统中所有人的任务"},
         {"code": "task:force_cancel:admin", "name": "强制取消任务", "desc": "管理员强制中断或取消系统中任意用户的任务"},
         {"code": "task:delete:admin", "name": "批量删除任务", "desc": "管理员批量清理或删除系统中的任意任务数据"},
-        {"code": "user:manage", "name": "用户管理", "desc": "管理系统用户的角色和状态"},
-        {"code": "permission:manage", "name": "权限配置", "desc": "管理系统角色和权限点配置"}
+
+        # ================= 用户与权限模块 (User & RBAC) =================
+        {"code": "user:read", "name": "查看用户列表", "desc": "管理员查看系统内全量用户列表及其基本信息"},
+        {"code": "user:manage", "name": "用户管理", "desc": "管理系统用户的状态（如封禁/解封）"},
+        {"code": "permission:manage", "name": "权限配置", "desc": "超级管理系统角色和特化权限点配置"},
+
+        # ================= 系统配置模块 (System Config) =================
+        {"code": "camera:read", "name": "查看相机配置", "desc": "允许查看系统中已上传的相机标定和内参配置文件"},
+        {"code": "camera:manage", "name": "管理相机配置", "desc": "允许管理员上传、更新或删除相机配置文件"}
     ]
 
     # 利用 engine 开启一个临时的数据库会话

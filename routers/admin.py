@@ -25,7 +25,7 @@ def admin_get_all_tasks(
     page: int = Query(1, ge=1),
     page_size: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_user = Depends(require_permission("permission:manage"))
+    current_user = Depends(require_permission("task:read:admin"))
 ):
     require_admin(current_user)
     query = db.query(Task).filter(Task.is_deleted == 0)
@@ -52,9 +52,8 @@ def upload_camera_config(
     device_model: str = Query(...),
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    auth_context: AuthContext = Depends(get_auth_context)
+    current_user = Depends(require_permission("camera:manage"))
 ):
-    current_user = auth_context.user
     require_admin(current_user)
     file_info = save_config_file(file, current_user.user_id, file_type)
     config_id = generate_uuid()
@@ -82,9 +81,8 @@ def list_camera_config(
     device_model: Optional[str] = Query(None),
     file_type: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    auth_context: AuthContext = Depends(get_auth_context)
+    current_user=Depends(require_permission("camera:read"))
 ):
-    current_user = auth_context.user
     require_admin(current_user)
     query = db.query(CameraConfig, UploadFile, User)\
         .join(UploadFile, CameraConfig.file_id == UploadFile.file_id)\
@@ -112,7 +110,7 @@ def list_camera_config(
 def delete_camera_config(
     config_id: str,
     db: Session = Depends(get_db),
-    current_user = Depends(require_permission("permission:manage"))
+    current_user = Depends(require_permission("camera:manage"))
 ):
     require_admin(current_user)
     cfg = db.query(CameraConfig).filter(CameraConfig.config_id == config_id).first()
@@ -129,7 +127,7 @@ def list_all_user(
     page_size: int = Query(10),
     username: Optional[str] = Query(None),
     db: Session = Depends(get_db),
-    current_user = Depends(require_permission("permission:manage"))
+    current_user = Depends(require_permission("user:read"))
 ):
     require_admin(current_user)
     query = db.query(User)
@@ -156,7 +154,7 @@ def update_user_status(
     user_id: str,
     body: UserStatusUpdate,
     db: Session = Depends(get_db),
-    current_user = Depends(require_permission("permission:manage"))
+    current_user = Depends(require_permission("user:manage"))
 ):
     require_admin(current_user)
     user = db.query(User).filter(User.user_id == user_id).first()
@@ -171,7 +169,7 @@ def update_user_status(
 def force_cancel_task(
     task_id: str,
     db: Session = Depends(get_db),
-    current_user = Depends(require_permission("permission:manage"))
+    current_user = Depends(require_permission("task:force_cancel:admin"))
 ):
     require_admin(current_user)
     task = db.query(Task).filter(Task.task_id == task_id, Task.is_deleted == 0).first()
@@ -192,9 +190,8 @@ def change_user_role(
     user_id: str,
     body: UserRoleUpdate,
     db: Session = Depends(get_db),
-    auth_context: AuthContext = Depends(get_auth_context)
+    current_user = Depends(require_permission("permission:manage"))
 ):
-    current_user = auth_context.user
     require_super_admin(current_user)
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
@@ -216,7 +213,7 @@ def change_user_role(
 def batch_delete_task(
     req: BatchDeleteTaskReq,
     db: Session = Depends(get_db),
-    current_user = Depends(require_permission("permission:manage"))
+    current_user = Depends(require_permission("task:delete:admin"))
 ):
     require_admin(current_user)
     if len(req.task_ids) == 0 or len(req.task_ids) > 100:
