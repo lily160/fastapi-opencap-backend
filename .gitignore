@@ -2,6 +2,7 @@
 __pycache__/
 *.py[codz]
 *$py.class
+.idea/
 
 # C extensions
 *.so
@@ -216,3 +217,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Local project files
+*.db
+.idea/
+work/
+storage/
