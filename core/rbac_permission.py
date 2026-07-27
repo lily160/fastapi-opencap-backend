@@ -3,8 +3,7 @@ from dataclasses import dataclass
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from config.constants import UserRole
 from core.security import decode_token, get_current_user
@@ -33,10 +32,10 @@ def get_role_permissions(role: str) -> list[str]:
     return ["task:create", "task:read:self"]
 
 
-async def get_auth_context(
+def get_auth_context(
      # 从请求头 Authorization: Bearer <token> 中自动解析 JWT
     auth_info: HTTPAuthorizationCredentials = Depends(bearer_scheme),
-    db: AsyncSession = Depends(get_db),
+    db: Session = Depends(get_db),
 ) -> AuthContext:
     try:
         # 解码 JWT，同时验证签名、过期时间等
@@ -50,17 +49,18 @@ async def get_auth_context(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="无效的访问令牌")
     # 如果用户退出登录，会将 JWT 的 jti 写入黑名单，
     # 后续即使 Token 未过期，也不能继续使用。
-    result = await db.execute(
-        select(TokenBlacklist).where(
+    revoked = (
+        db.query(TokenBlacklist)
+        .filter(
             TokenBlacklist.jti == payload.get("jti"),
             TokenBlacklist.token_type == "access",
         )
+        .first()
     )
-    revoked = result.scalars().first()
     if revoked:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="access token revoked")
     #查询用户
-    user = await db.get(User, payload.get("sub"))
+    user = db.get(User, payload.get("sub"))
     # 用户不存在或已被禁用，不允许继续访问
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="user is disabled")
