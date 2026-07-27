@@ -7,7 +7,7 @@ class OperationLog(Base):
     __tablename__ = 'sys_operation_log'
 
     log_id = Column(BigInteger, primary_key=True, autoincrement=True, comment="自增ID")
-    user_id = Column(String(64), ForeignKey('sys_user.id'), comment="操作用户ID")
+    user_id = Column(String(64), ForeignKey('sys_user.user_id'), comment="操作用户ID")
     operation_type = Column(String(32), nullable=False, comment="操作类型")
 
     task_id = Column(String(64), ForeignKey('sys_task.task_id'), nullable=True, comment="关联任务ID")

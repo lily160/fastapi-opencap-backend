@@ -8,7 +8,7 @@ from database.db import Base
 class User(Base):
     __tablename__ = "sys_user"
 
-    user_id = Column("id", String(36), primary_key=True, comment="user id")
+    user_id = Column("user_id", String(36), primary_key=True, comment="user id")
     username = Column(String(32), unique=True, nullable=False, comment="username")
     password_hash = Column(String(255), nullable=False, comment="password hash")
     email = Column(String(255), unique=True, comment="email")
