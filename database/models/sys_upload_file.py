@@ -6,7 +6,7 @@ class UploadFile(Base):
     __tablename__ = 'sys_upload_file'
 
     file_id = Column(String(64), primary_key=True, comment="文件唯一ID")
-    user_id = Column(String(64), ForeignKey('sys_user.user_id'), comment="所属用户ID")
+    user_id = Column(String(64), ForeignKey('sys_user.id'), comment="所属用户ID")
     original_name = Column(String(255), nullable=False, comment="文件原始名称")
     storage_name = Column(String(255), nullable=False, comment="存储名称")
     file_path = Column(String(512), nullable=False, comment="物理存储路径")

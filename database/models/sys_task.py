@@ -8,7 +8,7 @@ class Task(Base):
 
     task_id = Column(String(64), primary_key=True, comment="包装后的对外任务ID")
     algo_id = Column(String(64), unique=True, nullable=False, comment="算法原始任务ID")
-    user_id = Column(String(64), ForeignKey('sys_user.user_id'), comment="任务创建用户ID")
+    user_id = Column(String(64), ForeignKey('sys_user.id'), comment="任务创建用户ID")
     video_file_id = Column(String(64), ForeignKey('sys_upload_file.file_id'), comment="关联的视频文件ID")
 
     height_m = Column(DECIMAL(5, 2), nullable=False, comment="身高(米)")

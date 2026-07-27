@@ -51,6 +51,7 @@ def sync_permissions_to_db():
     with Session(engine) as db:
         for perm in preset_permissions:
             exists = db.query(Permission).filter(Permission.permission_code == perm["code"]).first()
+
             if not exists:
                 new_perm = Permission(
                     permission_code=perm["code"],
@@ -74,7 +75,6 @@ for folder in init_folders:
 # 自动扫描并创建 MySQL 数据库里的表
 print("当前扫描到的表有:", Base.metadata.tables.keys())
 Base.metadata.create_all(bind=engine)
-
 
 # ==========================================
 # 融合生命周期管理 (整合了 Startup 和 Kafka)
@@ -129,17 +129,6 @@ app.include_router(api_router, prefix="/api/v1")
 # 根路由与测试接口
 # ==========================================
 
-@app.get("/test-kafka")
-async def test_kafka():
-    """保留自第二段的 Kafka 测试接口"""
-    await send_message(
-        topic="send_email",
-        data={
-            "email": "test@qq.com",
-            "code": "123456"
-        }
-    )
-    return {"msg": "发送成功"}
 
 
 @app.get("/")
