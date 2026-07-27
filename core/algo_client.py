@@ -11,11 +11,11 @@ class AlgoClient:
         # 算法运行慢，设置长超时（默认 1800 秒 / 30 分钟）
         self.timeout = httpx.Timeout(TASK_MAX_TIMEOUT_SEC)
 
-    async def run_mono(self, payload: dict) -> str:
+    async def run_mono(self, payload: dict) -> dict:  # 👈 注意这里的返回值提示建议改成 dict
         """
-        提交算法任务，返回算法侧的 algo_id
+        提交算法任务，死等并返回算法侧包含所有文件路径的结果字典
         """
-        # 【修改点 1】: 增加 trust_env=False, proxies=None 绕过系统代理
+        # 增加 trust_env=False 绕过系统代理
         async with httpx.AsyncClient(timeout=self.timeout, trust_env=False) as client:
             try:
                 response = await client.post(
@@ -24,15 +24,16 @@ class AlgoClient:
                     headers=self.headers
                 )
                 response.raise_for_status()
-                data = response.json()
-                return data.get("algo_id")
+
+                # 🚨 核心修改：直接返回整个完整的 JSON 字典，不要再去取不存在的 algo_id 了！
+                return response.json()
+
             except httpx.HTTPError as e:
                 # 捕获外部调用异常，防止后端崩溃
                 raise CustomException(
                     status_code=CODE_SERVER_ERR,
                     detail=f"算法服务调用失败: {str(e)}"
                 )
-
     async def get_status(self, algo_id: str) -> dict:
         """
         供后台定时任务轮询进度的接口

@@ -14,14 +14,10 @@ def generate_metadata_yaml(task_id: str, height_m: float, mass_kg: float, sex: s
     try:
         # 1. 按照算法要求的结构组装字典
         data = {
-            "subject": {
-                "height_m": height_m,
-                "mass_kg": mass_kg,
-                "sex": sex
-            },
-            "trial": {
-                "activity": activity
-            }
+            "height_m": height_m,
+            "mass_kg": mass_kg,
+            "sex": sex,
+            "activity": activity
         }
 
         # 2. 如果前端传了自定义字段，统一塞进 custom_fields

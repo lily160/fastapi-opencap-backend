@@ -83,7 +83,6 @@ Base.metadata.create_all(bind=engine)
 async def lifespan(app: FastAPI):
     # 🌟 1. 执行原第一段 startup 中的同步逻辑
     sync_permissions_to_db()
-    start_scheduler()
 
     # 🌟 2. 启动第二段引入的 Kafka Producer 和 Consumer
     await start_producer()
