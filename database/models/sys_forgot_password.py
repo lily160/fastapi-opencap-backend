@@ -9,7 +9,7 @@ class ForgotPasswordSession(Base):
     __tablename__ = "sys_forgot_password"
 
     forgot_id = Column(String(64), primary_key=True, comment="忘记密码流程ID")
-    user_id = Column(String(64), ForeignKey("sys_user.id"), nullable=False, index=True, comment="用户ID")
+    user_id = Column(String(64), ForeignKey("sys_user.user_id"), nullable=False, index=True, comment="用户ID")
     contact_type = Column(String(16), comment="验证码发送方式")
     code_hash = Column(String(64), comment="验证码哈希")
     code_expires_at = Column(DateTime, comment="验证码过期时间")

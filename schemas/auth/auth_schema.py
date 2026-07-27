@@ -66,7 +66,6 @@ class PasswordChangeRequest(BaseModel):
             raise ValueError("new_password cannot be longer than 72 bytes")
         return value
 
-
 class ForgotPasswordRequest(BaseModel):
     username: str = Field(min_length=4, max_length=32)
 
@@ -113,3 +112,4 @@ class ForgotResetRequest(BaseModel):
         if len(value.encode("utf-8")) > 72:
             raise ValueError("new_password cannot be longer than 72 bytes")
         return value
+

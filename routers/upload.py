@@ -3,23 +3,31 @@ from sqlalchemy.orm import Session
 from database.db import get_db
 from core.security import get_current_user
 from core.file_security import save_upload_file
-from database.models.sys_upload_file import UploadFile
+from core.rbac_permission import AuthContext, get_auth_context
+
+# 【修改点 1】：给数据库模型加上 as DBUploadFile 进行重命名隔离
+from database.models.sys_upload_file import UploadFile as DBUploadFile
+
 from schemas.upload.upload_schema import VideoUploadResp
 from config.constants import CODE_SUCCESS
+
 router = APIRouter()
+
 
 @router.post("/video", status_code=CODE_SUCCESS, response_model=VideoUploadResp)
 def upload_video(
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+        file: UploadFile = File(...),  # ✅ 这里的 UploadFile 现在安全了，它指向 FastAPI内置类
+        db: Session = Depends(get_db),
+        auth_context: AuthContext = Depends(get_auth_context)
 ):
     """模块2.1 视频文件上传接口"""
-    user_id = current_user.user_id
+    user_id = auth_context.user.user_id
+
     # 安全存储文件
     file_info = save_upload_file(file, user_id)
-    # 写入数据库
-    db_file = UploadFile(
+
+    # 【修改点 2】：下面实例化数据库对象时，使用别名 DBUploadFile
+    db_file = DBUploadFile(
         file_id=file_info["file_id"],
         user_id=user_id,
         original_name=file_info["original_name"],
@@ -33,6 +41,7 @@ def upload_video(
     db.add(db_file)
     db.commit()
     db.refresh(db_file)
+
     return VideoUploadResp(
         file_id=db_file.file_id,
         filename=db_file.original_name,

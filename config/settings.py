@@ -1,5 +1,4 @@
 import os
-
 from aiosmtplib import smtp
 from dotenv import load_dotenv
 

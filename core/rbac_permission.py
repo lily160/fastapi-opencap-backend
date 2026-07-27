@@ -69,7 +69,6 @@ async def get_auth_context(
     return AuthContext(user=user, token=auth_info.credentials, payload=payload)
 
 
-
 def require_permission(permission: str):
     def dependency(auth_context: AuthContext = Depends(get_auth_context)) -> User:
         # 从 JWT Payload 中获取权限列表
