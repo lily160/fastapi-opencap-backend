@@ -172,25 +172,3 @@ def merge_user_permissions(db: Session, user: User) -> list[str]:
     return final
 
 
-def require_permission(permission: str):
-    def dependency(auth_context: AuthContext = Depends(get_auth_context)) -> User:
-        permissions = auth_context.payload.get("permissions", [])
-        if "*" not in permissions and permission not in permissions:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="无权操作")
-        return auth_context.user
-
-    return dependency
-
-
-def require_admin(user: User = Depends(get_current_user)) -> User:
-    """校验当前用户是普通管理员/超级管理员"""
-    if user.role not in (UserRole.ADMIN.value, UserRole.SUPER_ADMIN.value):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="需要管理员权限")
-    return user
-
-
-def require_super_admin(user: User = Depends(get_current_user)) -> User:
-    """仅允许超级管理员访问"""
-    if user.role != UserRole.SUPER_ADMIN.value:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="需要超级管理员权限")
-    return user
