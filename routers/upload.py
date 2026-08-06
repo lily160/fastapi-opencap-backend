@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
 from sqlalchemy.orm import Session
 from database.db import get_db
+from core.security import get_current_user
 from core.file_security import save_upload_file
-from core.security import AuthContext, get_auth_context
+from core.rbac_permission import AuthContext, get_auth_context
 
-# 给数据库模型加上 as DBUploadFile 进行重命名隔离
+# 【修改点 1】：给数据库模型加上 as DBUploadFile 进行重命名隔离
 from database.models.sys_upload_file import UploadFile as DBUploadFile
+
 from schemas.upload.upload_schema import VideoUploadResp
 from config.constants import CODE_SUCCESS
 
