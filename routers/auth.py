@@ -17,7 +17,8 @@ from config.settings import (
     ACCESS_TOKEN_EXPIRE_SECONDS, FORGOT_CODE_EXPIRE, FORGOT_CODE_INTERVAL,
     FORGOT_LOOKUP_EXPIRE, FORGOT_MAX_RETRY, KAFKA_FORGOT_PASSWORD_TOPIC,
 )
-from core.rbac_permission import AuthContext, get_auth_context, get_role_permissions
+from core.security import AuthContext, get_auth_context
+from core.rbac_permission import get_role_permissions
 from core.security import (
     create_access_token, create_refresh_token, decode_token, get_password_hash,
     utc_now, verify_password,
@@ -36,11 +37,13 @@ from schemas.auth.auth_schema import (
 from services.sms_service import sms_service
 router = APIRouter()
 
-#转换成hash值
+
+# 转换成hash值
 def token_hash(token: str) -> str:
     return sha256(token.encode("utf-8")).hexdigest()
 
-#把任意 datetime 对象统一转换成 UTC 时区的时间。
+
+# 把任意 datetime 对象统一转换成 UTC 时区的时间。
 def normalize_datetime(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
@@ -118,7 +121,7 @@ def refresh_access_token(db: Session, refresh_token: str) -> TokenResponse:
     # Token 不存在或已被撤销
     if not stored_token or stored_token.revoked_at is not None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="refresh token revoked")
-    #判断是否已经过期
+    # 判断是否已经过期
     if normalize_datetime(stored_token.expires_at) < utc_now():
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="refresh token expired")
     user = db.get(User, payload.get("sub"))
@@ -130,7 +133,8 @@ def refresh_access_token(db: Session, refresh_token: str) -> TokenResponse:
     db.commit()
     return issue_tokens(db, user)
 
-#退出登录时标记token为失效
+
+# 退出登录时标记token为失效
 def revoke_refresh_token(db: Session, refresh_token: str) -> None:
     # 查询数据库中仍然有效的 Refresh Token
     stored_token = (
@@ -147,7 +151,8 @@ def revoke_refresh_token(db: Session, refresh_token: str) -> None:
         stored_token.revoked_at = datetime.utcnow()
         db.commit()
 
-#让某个用户的所有 Refresh Token 全部失效。
+
+# 让某个用户的所有 Refresh Token 全部失效。
 def revoke_all_user_refresh_tokens(db: Session, user_id: str) -> None:
     # 查询该用户所有未撤销的 Refresh Token
     tokens = (
@@ -164,7 +169,8 @@ def revoke_all_user_refresh_tokens(db: Session, user_id: str) -> None:
         token.revoked_at = datetime.utcnow()
     db.commit()
 
-#把当前 Access Token 加入黑名单，以后即使 Token 没过期，也不能再使用。
+
+# 把当前 Access Token 加入黑名单，以后即使 Token 没过期，也不能再使用。
 def revoke_access_token(db: Session, user_id: str, payload: dict) -> None:
     # 获取 JWT 唯一标识（jti）和过期时间（exp）
     jti, exp = payload.get("jti"), payload.get("exp")
@@ -182,22 +188,26 @@ def revoke_access_token(db: Session, user_id: str, payload: dict) -> None:
     ))
     db.commit()
 
-#对找回密码进行hash加密
+
+# 对找回密码进行hash加密
 def code_hash(forgot_id: str, code: str) -> str:
     return sha256(f"{forgot_id}:{code}".encode("utf-8")).hexdigest()
 
-#邮箱脱敏
+
+# 邮箱脱敏
 def mask_email(email: str) -> str:
     local, _, domain = email.partition("@")
     masked = f"{local[0]}***" if len(local) <= 2 and local else "***" if not local else f"{local[0]}***{local[-1]}"
     return f"{masked}@{domain}"
 
-#手机号脱敏
+
+# 手机号脱敏
 def mask_phone(phone: str) -> str:
     value = phone.strip()
     return "*" * len(value) if len(value) <= 4 else f"{value[:3]}****{value[-4:]}"
 
-#根据用户绑定的邮箱和手机号，生成一个"脱敏联系方式列表"，返回给前端。
+
+# 根据用户绑定的邮箱和手机号，生成一个"脱敏联系方式列表"，返回给前端。
 def user_forgot_contacts(user: User) -> list[MaskedContact]:
     contacts = []
     if user.email:
@@ -322,6 +332,7 @@ def send_forgot_code(payload: ForgotSendCodeRequest, db: Session) -> ForgotSendC
         expire_seconds=FORGOT_CODE_EXPIRE
     )
 
+
 def reset_forgot_password(payload: ForgotResetRequest, db: Session) -> None:
     # 获取有效的找回密码会话
     session = get_valid_forgot_session(
@@ -392,6 +403,7 @@ def reset_forgot_password(payload: ForgotResetRequest, db: Session) -> None:
         user.user_id
     )
     db.commit()
+
 
 @router.post("/register", response_model=RegisterResponse, status_code=CODE_CREATE)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)) -> RegisterResponse:

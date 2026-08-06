@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 
 from config.constants import *
 from core.file_security import save_config_file
-from core.rbac_permission import AuthContext, get_auth_context
+from core.security import AuthContext, get_auth_context
+from core.rbac_permission import merge_user_permissions
 from core.rbac_permission import require_admin, require_super_admin, require_permission
 from database.db import get_db
 from database.models.sys_camera_config import CameraConfig
@@ -16,6 +17,7 @@ from schemas.admin.admin_schema import *
 from utils.uuid_util import generate_uuid
 
 router = APIRouter()
+
 
 # ====================== 6.1 查看全量任务列表 ======================
 @router.get("/tasks", response_model=PageResp)
@@ -44,6 +46,7 @@ def admin_get_all_tasks(
         "progress": t.progress
     } for t in tasks]
     return {"total": total, "page": page, "page_size": page_size, "tasks": task_list}
+
 
 # ====================== 6.2 上传相机配置文件 ======================
 @router.post("/config/intrinsics", response_model=CameraConfigResp)
@@ -75,6 +78,7 @@ def upload_camera_config(
         updated_at=cfg.updated_at.isoformat()+"Z"
     )
 
+
 # ====================== 6.3 获取相机配置列表 ======================
 @router.get("/configs")
 def list_camera_config(
@@ -105,6 +109,7 @@ def list_camera_config(
         ))
     return {"total": len(configs), "configs": configs}
 
+
 # ====================== 6.4 删除相机配置 ======================
 @router.delete("/configs/{config_id}", status_code=CODE_NO_CONTENT)
 def delete_camera_config(
@@ -119,6 +124,7 @@ def delete_camera_config(
     cfg.is_deleted = 1
     db.commit()
     return
+
 
 # ====================== 6.5 查看全量用户列表 ======================
 @router.get("/users", response_model=PageResp)
@@ -148,6 +154,7 @@ def list_all_user(
         ))
     return {"total": total, "page": page, "page_size": page_size, "users": user_list}
 
+
 # ====================== 6.6 修改用户状态/封禁 ======================
 @router.put("/users/{user_id}")
 def update_user_status(
@@ -163,6 +170,7 @@ def update_user_status(
     user.is_active = 1 if body.is_active else 0
     db.commit()
     return {"user_id": user_id, "is_active": body.is_active, "message": "User status updated successfully"}
+
 
 # ====================== 6.7 管理员强制取消任务 ======================
 @router.post("/tasks/{task_id}/force-cancel")
@@ -183,6 +191,7 @@ def force_cancel_task(
     task.status = TaskStatus.CANCELED
     db.commit()
     return {"task_id": task_id, "status": "CANCELED", "message": "Task forcefully canceled by administrator"}
+
 
 # ====================== 6.8 超级管理员修改用户角色 ======================
 @router.put("/users/{user_id}/role")
@@ -207,6 +216,7 @@ def change_user_role(
         "role": body.role,
         "message": "User role updated successfully"
     }
+
 
 # ====================== 6.9 批量删除任务 ======================
 @router.post("/tasks/batch-delete", response_model=BatchDeleteResp)
@@ -233,6 +243,7 @@ def batch_delete_task(
     db.commit()
     return BatchDeleteResp(deleted_count=deleted, failed=fail_list)
 
+
 # ====================== 6.10 权限点列表 ======================
 @router.get("/permissions")
 def list_permissions(
@@ -241,6 +252,7 @@ def list_permissions(
     current_user = auth_context.user
     require_super_admin(current_user)
     return {"permissions": PERMISSION_LIST}
+
 
 # ====================== 6.11 角色权限配置 ======================
 @router.put("/roles/{role}/permissions")
@@ -265,6 +277,7 @@ def config_role_permission(
         "message": "Role permissions updated successfully"
     }
 
+
 # ====================== 6.12 用户权限覆盖 ======================
 @router.put("/users/{user_id}/permissions")
 def user_permission_override(
@@ -287,7 +300,6 @@ def user_permission_override(
     user.permissions_version += 1
     db.commit()
     # 合并角色+覆盖权限返回
-    from core.security import merge_user_permissions
     final_perms = merge_user_permissions(db, user)
     return {
         "user_id": user_id,

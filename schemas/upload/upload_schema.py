@@ -1,4 +1,6 @@
 from pydantic import BaseModel
+
+
 class VideoUploadResp(BaseModel):
     file_id: str
     filename: str

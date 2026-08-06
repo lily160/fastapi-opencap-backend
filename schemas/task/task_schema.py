@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
-from datetime import datetime
+
 
 class TaskCreateReq(BaseModel):
     video_file_id: str = Field(..., min_length=32, max_length=64, description="视频文件ID")

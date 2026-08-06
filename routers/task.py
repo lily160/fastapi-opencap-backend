@@ -1,3 +1,5 @@
+from fastapi import BackgroundTasks
+import os
 import uuid
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -8,22 +10,19 @@ from core.algo_client import algo_client
 from core.id_wrapper import generate_task_id
 from core.yaml_generator import generate_metadata_yaml
 from database.db import get_db, SessionLocal
-# 【修改1】引入 User 模型
-from database.models import Task, UploadFile, User, TaskResult
+from database.models import UploadFile, User
 from schemas.task.task_schema import TaskCreateReq
-# 【修改2】从队友的 RBAC 权限模块引入核心鉴权依赖
-from core.rbac_permission import AuthContext, get_auth_context, require_permission
+from core.rbac_permission import require_permission
 
 router = APIRouter()
 
 # ==========================================
 # 创建任务
 # ==========================================
-from fastapi import BackgroundTasks
-import os
 
 DEFAULT_CALIB = r"D:\B24160206\conda\opencap-monocular\examples\walking4\calib.txt"
 DEFAULT_INTRINSICS = r"D:\B24160206\conda\opencap-monocular\examples\Intrinsics\iPhone17,1\Deployed\cameraIntrinsics.pickle"
+
 # ==========================================
 # 后台任务：处理“死等模式”的算法请求
 # ==========================================
@@ -87,6 +86,7 @@ async def process_algo_in_background(safe_task_id: str, algo_payload: dict):
     finally:
         # 🌟 极度关键：跑完必须关闭独立的 Session
         db.close()
+
 
 # ==========================================
 # 主接口：负责鉴权、参数校验、入库与分发

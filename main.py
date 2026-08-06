@@ -11,16 +11,16 @@ from config.settings import (
     BASE_STORAGE, UPLOAD_DIR, RESULT_DIR,
     METADATA_DIR, LOG_DIR, PROJECT_NAME, PROJECT_VERSION
 )
-from database.models import *  # 从第二段引入的全局模型，用于解开建表命令
+
 from database.models import Permission
 
 # 2. 导入业务路由、内部算法路由与定时任务模块
 from routers import api_router
-from core.task_poller import start_scheduler
+
 
 # 3. Kafka 相关导入 (来自第二段)
 from kafka.consumer import start_consumer, stop_consumer, consume
-from kafka.producer import start_producer, stop_producer, send_message
+from kafka.producer import start_producer, stop_producer
 
 
 # ==========================================
@@ -76,6 +76,7 @@ for folder in init_folders:
 print("当前扫描到的表有:", Base.metadata.tables.keys())
 Base.metadata.create_all(bind=engine)
 
+
 # ==========================================
 # 融合生命周期管理 (整合了 Startup 和 Kafka)
 # ==========================================
@@ -125,9 +126,6 @@ app.include_router(api_router, prefix="/api/v1")
 # ==========================================
 # 根路由与测试接口
 # ==========================================
-
-
-
 @app.get("/")
 def root():
     """保留自第一段的同步状态检查接口"""

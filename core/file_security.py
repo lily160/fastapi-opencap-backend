@@ -1,10 +1,10 @@
 import os
-from typing import Optional
 from fastapi import UploadFile, HTTPException
 from config.settings import MAX_VIDEO_SIZE, VIDEO_ALLOW, UPLOAD_DIR
 from utils.uuid_util import generate_uuid
 # 视频MIME白名单
 VIDEO_MIME_WHITE = {"video/mp4", "video/mov", "video/x-msvideo"}
+
 
 def check_file_security(file: UploadFile):
     """多层安全校验：大小、后缀、MIME、内容头"""
@@ -22,6 +22,7 @@ def check_file_security(file: UploadFile):
     if file.content_type not in VIDEO_MIME_WHITE:
         raise HTTPException(status_code=400, detail="文件真实类型非视频，禁止上传")
     return file_size, suffix
+
 
 def save_upload_file(file: UploadFile, user_id: str) -> dict:
     """生成随机file_id，重命名存储，返回文件信息"""
@@ -43,6 +44,7 @@ def save_upload_file(file: UploadFile, user_id: str) -> dict:
         "file_type": "video"
     }
 
+
 def safe_path_check(target_path: str):
     """防止路径穿越攻击，校验文件路径在允许目录内"""
     from config.settings import RESULT_DIR, UPLOAD_DIR
@@ -51,6 +53,7 @@ def safe_path_check(target_path: str):
     in_allow = any(abs_target.startswith(os.path.abspath(d)) for d in allow_dirs)
     if not in_allow:
         raise HTTPException(status_code=400, detail="非法文件路径，禁止访问")
+
 
 # 新增：管理员上传相机配置yaml文件
 def save_config_file(file: UploadFile, admin_user_id: str, file_type: str) -> dict:

@@ -3,21 +3,19 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from uuid import uuid4
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from config.constants import CODE_UNAUTH, UserRole
+from config.constants import CODE_UNAUTH
 from config.settings import ACCESS_TOKEN_EXPIRE_SECONDS, ALGORITHM, REFRESH_TOKEN_DAYS, SECRET_KEY
 from database.db import get_db
 from database.models.sys_token_blacklist import TokenBlacklist
 from database.models.sys_user import User
 
-# ==========================================
-# 1. 基础配置与工具函数
-# ==========================================
+# ===================== 基础密码工具 =====================
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # 全局唯一的鉴权 Scheme（确保 Swagger 统一加锁）
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -35,6 +33,7 @@ def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+# ===================== JWT 生成与解码 =====================
 def create_access_token(user_id: str, role: str, permissions: list[str]) -> tuple[str, datetime]:
     expires_at = utc_now() + timedelta(seconds=ACCESS_TOKEN_EXPIRE_SECONDS)
     payload = {
@@ -65,9 +64,7 @@ def decode_token(token: str) -> dict:
     return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
 
-# ==========================================
-# 2. 核心鉴权逻辑 (依赖注入)
-# ==========================================
+# ===================== 统一认证上下文、全局鉴权依赖 =====================
 @dataclass(frozen=True)
 class AuthContext:
     user: User
@@ -133,42 +130,4 @@ def get_current_user(auth_context: AuthContext = Depends(get_auth_context)) -> U
     会自动继承 get_auth_context 的所有安全校验。
     """
     return auth_context.user
-
-
-# ==========================================
-# 3. RBAC 与 权限校验
-# ==========================================
-def merge_user_permissions(db: Session, user: User) -> list[str]:
-    # ✅ 补丁：如果是超级管理员，直接返回通配符最高权限，不需要去查数据库
-    role_value = user.role.value if hasattr(user.role, "value") else user.role
-    if role_value == UserRole.SUPER_ADMIN.value:  # 或者直接写 "super_admin"
-        return ["*"]
-
-    """合并角色默认权限 + 用户自定义grant/revoke覆盖权限"""
-    from database.models.sys_role_permission import RolePermission
-    from database.models.sys_user_permission_override import UserPermissionOverride
-
-    # 获取角色基础权限
-    base_rp_list = db.query(RolePermission).filter(RolePermission.role == user.role).all()
-    base_perms = [op.permission_code for op in base_rp_list]
-
-    # 获取用户授予权限
-    grant_op_list = db.query(UserPermissionOverride).filter(
-        UserPermissionOverride.user_id == user.user_id,
-        UserPermissionOverride.effect == "grant"
-    ).all()
-    grant_codes = [op.permission_code for op in grant_op_list]
-
-    # 获取用户撤销权限
-    revoke_op_list = db.query(UserPermissionOverride).filter(
-        UserPermissionOverride.user_id == user.user_id,
-        UserPermissionOverride.effect == "revoke"
-    ).all()
-    revoke_codes = [op.permission_code for op in revoke_op_list]
-
-    # 合并并去重，移除撤销项
-    full = list(set(base_perms + grant_codes))
-    final = [p for p in full if p not in revoke_codes]
-    return final
-
 

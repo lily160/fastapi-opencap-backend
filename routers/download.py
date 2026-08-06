@@ -3,20 +3,21 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from database.db import get_db
-from core.security import get_current_user
 from database.models.sys_task_result import TaskResult
 from database.models.sys_task import Task
 from core.file_security import safe_path_check
 from config.constants import CODE_FORBIDDEN, CODE_NOT_FOUND
-from core.rbac_permission import AuthContext, get_auth_context
+from core.security import AuthContext, get_auth_context
 
 router = APIRouter()
+
 
 def stream_file(file_path: str):
     """流式分块读取大文件"""
     with open(file_path, "rb") as f:
         while chunk := f.read(1024*1024):
             yield chunk
+
 
 @router.get("/result/{file_id}")
 def download_result(
