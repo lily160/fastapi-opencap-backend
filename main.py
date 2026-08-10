@@ -112,7 +112,10 @@ app = FastAPI(title=PROJECT_NAME, version=PROJECT_VERSION, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:8080",  # 视前端本地开发端口而定，比如 8080, 3000 或 5173
+        "https://reshoot-seventh-huskiness.ngrok-free.dev"  # 你刚刚生成的 ngrok 穿透公网地址
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
@@ -139,4 +142,4 @@ if __name__ == "__main__":
 
     # 融合了两段代码的启动特点
     reload_enabled = os.getenv("UVICORN_RELOAD", "true").lower() == "true"
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=reload_enabled)
+    uvicorn.run("main:app", host="0.0.0.0", port=8010, reload=reload_enabled)

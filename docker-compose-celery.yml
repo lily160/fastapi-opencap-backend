@@ -1,0 +1,74 @@
+services:
+  # 1. FastAPI 主 Web 服务（前端调用的接口）
+  fastapi-web:
+    build: .
+    container_name: mono-fastapi
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app
+    environment:
+      # 告诉 FastAPI 怎么连 Redis
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      - redis
+    # 启动 FastAPI
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # 2. Redis：Celery 消息中转站 + 结果存储
+  redis:
+    image: redis:7-alpine
+    container_name: mono-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes # 开启 AOF 持久化，防丢数据
+
+  # 3. Celery 任务消费者（后台苦力，跑算法的）
+  celery-worker:
+    build: .
+    container_name: mono-celery-worker
+    depends_on:
+      - redis
+    volumes:
+      - ./:/app
+    environment:
+      # 告诉 Celery 去连内网的 Redis
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      UVICORN_RELOAD: "false"
+    # 注意：改为了 core.celery_app。Docker 里跑 Linux 环境，去掉了 --pool=solo
+    command: celery -A core.celery_app worker --loglevel=INFO
+
+  # 4. Celery Beat 定时任务调度器（如果不需要定时任务，可随时注释掉）
+  celery-beat:
+    build: .
+    container_name: mono-celery-beat
+    depends_on:
+      - redis
+    volumes:
+      - ./:/app
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    command: celery -A core.celery_app beat --loglevel=INFO
+
+  # 5. Flower：Celery 实时监控大屏
+  flower:
+    image: mher/flower
+    container_name: mono-flower
+    ports:
+      - "5555:5555"
+    environment:
+      # 告诉 Flower 去监听哪个 Redis 队列
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      - redis
+      - celery-worker
+
+volumes:
+  redis_data:
