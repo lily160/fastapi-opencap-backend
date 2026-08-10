@@ -142,4 +142,4 @@ if __name__ == "__main__":
 
     # 融合了两段代码的启动特点
     reload_enabled = os.getenv("UVICORN_RELOAD", "true").lower() == "true"
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=reload_enabled)
+    uvicorn.run("main:app", host="0.0.0.0", port=8010, reload=reload_enabled)
